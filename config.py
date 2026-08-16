@@ -38,6 +38,6 @@ MIN_QUESTION_LENGTH = 2        # 인식된 텍스트가 이보다 짧으면 의�
 HINT_ECHO_SIMILARITY = 0.6     # STT_VOCAB_HINT와 이 비율 이상 유사하면 힌트를 그대로 따라 말한 환각으로 판단
 
 # ── 일반 녹음/모델 설정 ───────────────────────────────
-RECORD_SECONDS = 5
+RECORD_SECONDS = 15
 SAMPLE_RATE = 16000
 MODEL_NAME = "gpt-5.6-luna"
