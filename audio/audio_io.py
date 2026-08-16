@@ -9,49 +9,54 @@ import numpy as np
 import pygame
 import sounddevice as sd
 import time
-from scipy.io.wavfile import read, write
+from scipy.io.wavfile import write
 
-from config import RECORD_SECONDS, SAMPLE_RATE, SILENCE_RMS_THRESHOLD
+from config import RECORD_SECONDS, SAMPLE_RATE, SILENCE_RMS_THRESHOLD, SILENCE_STOP_SECONDS
+
+_CHUNK_SECONDS = 0.1  # 이 단위로 마이크를 읽으며 침묵 여부를 확인한다.
 
 
-def record_audio_to_wav(audio_path: Path, duration: int = RECORD_SECONDS,
-                         sample_rate: int = SAMPLE_RATE) -> None:
-    """마이크로 duration초간 녹음해서 wav 파일로 저장한다."""
+def record_audio_to_wav(audio_path: Path, max_duration: int = RECORD_SECONDS,
+                         sample_rate: int = SAMPLE_RATE,
+                         silence_stop_seconds: float = SILENCE_STOP_SECONDS,
+                         silence_threshold: int = SILENCE_RMS_THRESHOLD) -> bool:
+    """마이크로 녹음해서 wav 파일로 저장한다.
+
+    사람 대화처럼, 말이 시작된 뒤 silence_stop_seconds 이상 조용해지면 자동으로
+    녹음을 끝낸다. max_duration은 계속 말이 이어질 때를 대비한 최대 녹음 시간(안전장치)이다.
+    반환값은 녹음 중 실제로 말소리(침묵 임계값 이상)가 감지됐는지 여부다.
+    """
     # 직전에 TTS 재생이 있었다면 출력 장치에서 입력 장치로 전환될 시간을 잠깐 준다.
     # (재생 직후 바로 녹음을 시작하면 초반 구간이 제대로 안 잡히는 경우가 있다)
     time.sleep(0.3)
-    print(f"{duration}초간 말해주세요.")
-    audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate,
-                    channels=1, dtype="int16")
-    sd.wait()
+    print(f"말씀해주세요. (최대 {max_duration}초, 말을 마치면 자동으로 넘어갑니다)")
+
+    chunk_frames = max(1, int(sample_rate * _CHUNK_SECONDS))
+    max_chunks = max(1, int(max_duration / _CHUNK_SECONDS))
+    silence_chunks_needed = max(1, int(silence_stop_seconds / _CHUNK_SECONDS))
+
+    chunks = []
+    speech_started = False
+    silence_run = 0
+
+    with sd.InputStream(samplerate=sample_rate, channels=1, dtype="int16") as stream:
+        for _ in range(max_chunks):
+            chunk, _ = stream.read(chunk_frames)
+            chunks.append(chunk.copy())
+
+            rms = np.sqrt(np.mean(chunk.astype(np.float64) ** 2))
+            if rms >= silence_threshold:
+                speech_started = True
+                silence_run = 0
+            elif speech_started:
+                silence_run += 1
+                if silence_run >= silence_chunks_needed:
+                    break
+
+    audio = np.concatenate(chunks, axis=0) if chunks else np.zeros((0, 1), dtype="int16")
     write(audio_path, sample_rate, audio)
     print("녹음 완료")
-
-
-def is_silence(audio_path: Path, threshold: int = SILENCE_RMS_THRESHOLD,
-               window_ms: int = 300) -> bool:
-    """녹음된 오디오가 사실상 무음(마이크 미인식, 묵음 등)인지 RMS 볼륨으로 판별한다.
-
-    녹음 전체의 평균 RMS로 판단하면, "네"처럼 짧게 말하고 나머지가 조용한 경우
-    평균이 희석되어 실제로 말을 했는데도 무음으로 오판될 수 있다.
-    그래서 전체를 window_ms 단위 구간으로 나눠 그중 가장 큰 RMS를 기준으로 삼는다.
-
-    무음/잡음 구간을 STT로 넘기면 모델이 힌트 텍스트를 그대로 따라 말하는
-    환각 현상이 생기기 쉬우므로, API를 호출하기 전에 먼저 걸러낸다.
-    """
-    rate, data = read(audio_path)
-    data = data.astype(np.float64)
-
-    window_size = max(1, int(rate * window_ms / 1000))
-    max_rms = 0.0
-    for start in range(0, len(data), window_size):
-        chunk = data[start:start + window_size]
-        if len(chunk) == 0:
-            continue
-        chunk_rms = np.sqrt(np.mean(chunk ** 2))
-        max_rms = max(max_rms, chunk_rms)
-
-    return max_rms < threshold
+    return speech_started
 
 
 def play_mp3(file_path: str) -> None:
@@ -64,3 +69,8 @@ def play_mp3(file_path: str) -> None:
     pygame.mixer.music.play()
     while pygame.mixer.music.get_busy():
         time.sleep(0.1)
+
+    # load()는 재생이 끝나도 파일 핸들을 계속 쥐고 있어서, 같은 파일명에 새 TTS
+    # 결과를 덮어쓰려 하면 Windows에서 PermissionError가 난다. 재생이 끝나면 바로
+    # 언로드해서 다음 call_tts()가 같은 경로에 다시 쓸 수 있게 한다.
+    pygame.mixer.music.unload()

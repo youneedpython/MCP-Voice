@@ -34,7 +34,6 @@ def _is_exit_intent(text: str) -> bool:
 def main() -> None:
     question_audio = BASE_DIR / "speech_question.wav"
     confirm_audio = BASE_DIR / "speech_confirm.mp3"
-    answer_audio = BASE_DIR / "speech_answer.wav"
     response_audio = BASE_DIR / "speech_response.mp3"
     results_dir = os.path.join(str(BASE_DIR), "results")
 
@@ -46,7 +45,7 @@ def main() -> None:
     consecutive_errors = 0
     while True:
         try:
-            confirmed_text = get_confirmed_text(question_audio, confirm_audio, answer_audio)
+            confirmed_text = get_confirmed_text(question_audio, confirm_audio)
 
             if confirmed_text is None:
                 print("확인 재시도 횟수를 초과했습니다.")
