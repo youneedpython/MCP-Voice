@@ -12,10 +12,10 @@ STT로 인식한 내용이 실제로 맞는지 음성으로 재확인하는 모�
 from pathlib import Path
 from typing import Optional
 
-from audio_io import record_audio_to_wav, play_mp3, is_silence
+from .audio_io import record_audio_to_wav, play_mp3, is_silence
 from core import call_tts
 from config import MAX_CONFIRM_RETRY, CONFIRM_RECORD_SECONDS, ANSWER_SILENCE_RETRY
-from stt_pipeline import transcribe_clean, is_meaningless
+from .stt_pipeline import transcribe_clean, is_meaningless
 
 _AFFIRM_WORDS = ("예", "네", "맞아", "맞습니다", "응", "어")
 _NEGATIVE_WORDS = ("아니오", "아니요", "아니야", "틀려", "아니")

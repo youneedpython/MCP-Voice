@@ -9,10 +9,9 @@ import os
 import shutil
 from pathlib import Path
 
-from audio_io import play_mp3
-from confirm_loop import get_confirmed_text
+from audio import play_mp3, get_confirmed_text
 from core import call_tts
-from news_agent import get_briefing
+from agent import get_briefing
 
 BASE_DIR = Path(__file__).parent
 

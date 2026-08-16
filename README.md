@@ -10,10 +10,10 @@
 |---|---|
 | `main.py` | 전체 흐름 오케스트레이션 (진입점) |
 | `config.py` | 관심 키워드, 재시도 횟수, API 키 등 설정값 |
-| `audio_io.py` | 마이크 녹음, mp3 재생 |
-| `stt_pipeline.py` | 노이즈 제거 + STT 변환 (어휘 힌트 포함) |
-| `confirm_loop.py` | "~라고 하신 게 맞으신가요?" 재확인 루프 (최대 2회 재시도) |
-| `news_agent.py` | MCP 에이전트 실행 (네이버 검색 + 파일시스템) |
+| `audio/audio_io.py` | 마이크 녹음, mp3 재생 |
+| `audio/stt_pipeline.py` | 노이즈 제거 + STT 변환 (어휘 힌트 포함) |
+| `audio/confirm_loop.py` | "~라고 하신 게 맞으신가요?" 재확인 루프 (최대 2회 재시도) |
+| `agent/news_agent.py` | MCP 에이전트 실행 (네이버 검색 + 파일시스템) |
 | `core/` | OpenAI STT/TTS 연결 (기존 core 모듈 확장판) |
 | `results/` | MCP 파일시스템 서버가 읽는 디렉토리 (관심 키워드 등) |
 
@@ -36,5 +36,5 @@
 6. 재시도 초과 시 안내 음성 후 다음 질문으로 넘어감 (프로그램 자체는 종료하지 않음)
 
 ## 참고
-- Windows/macOS/Linux 환경을 자동 감지해 `npx` 실행 방식을 맞춥니다 (`news_agent.py`의 `_npx_command_params`).
+- Windows/macOS/Linux 환경을 자동 감지해 `npx` 실행 방식을 맞춥니다 (`agent/news_agent.py`의 `_npx_command_params`).
 - `noisereduce`가 설치되어 있지 않아도 동작하며, 설치 시 자동으로 노이즈 제거가 적용됩니다.
